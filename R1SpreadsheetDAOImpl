@@ -1,0 +1,41 @@
+package submissions.dao.imp;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import submissions.ValueObjects.R1SpreadsheetColumn;
+import submissions.dao.R1SpreadsheetDAO;
+
+@Service
+public class R1SpreadsheetDAOImpl extends BudgesBaseDAOImpl<R1SpreadsheetColumn> implements R1SpreadsheetDAO {
+	public R1SpreadsheetDAOImpl() {
+		super(R1SpreadsheetColumn.class);
+	}
+
+	public void r1Mapping(R1SpreadsheetColumn r1Column) {
+		save(r1Column);
+		// evicting references to this object from the current session
+		evict(r1Column);
+		flush();
+	  }
+	
+	public List<R1SpreadsheetColumn> getAll() {
+		List<R1SpreadsheetColumn> r1Columns = new ArrayList<R1SpreadsheetColumn>();
+		r1Columns = findAll();
+		return r1Columns;
+	}
+	
+	public void r1Update(R1SpreadsheetColumn r1Column) {
+		update(r1Column);
+	}
+	
+	public void r1Delete(R1SpreadsheetColumn r1Column) {
+		delete(r1Column);
+	}
+	
+	public R1SpreadsheetColumn findOne(int id) {
+		return findById(id);
+	}
+}

@@ -1,0 +1,19 @@
+package submissions.dao;
+
+import java.util.List;
+
+import submissions.ValueObjects.R1SpreadsheetColumn;
+
+public interface R1SpreadsheetDAO extends BudgesBaseDAO<R1SpreadsheetColumn> {
+	
+	public void r1Mapping(R1SpreadsheetColumn r1Column);
+	
+	public List<R1SpreadsheetColumn> getAll();
+	
+	public void r1Update(R1SpreadsheetColumn r1Column);
+	
+	public void r1Delete(R1SpreadsheetColumn r1Column);
+
+	public R1SpreadsheetColumn findOne(int id);
+	
+}

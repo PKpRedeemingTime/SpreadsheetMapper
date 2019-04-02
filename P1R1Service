@@ -1,0 +1,30 @@
+package mil.dtic.cbes.submissions.service;
+
+import java.util.List;
+
+import mil.dtic.cbes.submissions.ValueObjects.BudgesBaseValueObject;
+import mil.dtic.cbes.submissions.ValueObjects.P1SpreadsheetColumn;
+import mil.dtic.cbes.submissions.ValueObjects.R1SpreadsheetColumn;
+import mil.dtic.cbes.submissions.data.PrcpType;
+
+public interface P1R1Service extends BaseService{
+   
+   public void spreadsheetMapping(PrcpType prcpType, String columnTitle, int columnOrder, String columnLetter);
+   
+   public void r1Mapping(R1SpreadsheetColumn r1Column);
+   
+   public List<P1SpreadsheetColumn> getP1Columns();
+   
+   public List<R1SpreadsheetColumn> getR1Columns();
+   
+   public BudgesBaseValueObject findOneP1R1Row(PrcpType prcpType, int id);
+   
+   public void updateColumn(PrcpType prcpType, BudgesBaseValueObject column);
+   
+   public void deleteColumn(PrcpType prcpType, int id);
+   
+   public void buildSkeleton(PrcpType prcpType, String budgetYear) throws Exception;
+   
+   public void populateData(PrcpType prcpType, String copyFromFile, String budgetYear, Integer dataBeginsRow) throws Exception;
+
+}

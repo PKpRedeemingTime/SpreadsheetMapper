@@ -1,0 +1,19 @@
+package submissions.dao;
+
+import java.util.List;
+
+import submissions.ValueObjects.P1SpreadsheetColumn;
+
+public interface P1SpreadsheetDAO extends BudgesBaseDAO<P1SpreadsheetColumn> {
+
+	public void p1Mapping(P1SpreadsheetColumn p1Column);
+	
+	public List<P1SpreadsheetColumn> getAll();
+	
+	public P1SpreadsheetColumn findOne(int id);
+	
+	public void p1Update(P1SpreadsheetColumn p1Column);
+	
+	public void p1Delete(P1SpreadsheetColumn p1Column);
+	
+}

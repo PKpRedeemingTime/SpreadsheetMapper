@@ -1,0 +1,638 @@
+package mil.dtic.cbes.submissions.service.impl;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.swing.filechooser.FileSystemView;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.poi.POIXMLProperties;
+import org.apache.poi.POIXMLProperties.CoreProperties;
+import org.apache.poi.openxml4j.util.Nullable;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import mil.dtic.cbes.submissions.ValueObjects.BudgesBaseValueObject;
+import mil.dtic.cbes.submissions.ValueObjects.P1Data;
+import mil.dtic.cbes.submissions.ValueObjects.P1SpreadsheetColumn;
+import mil.dtic.cbes.submissions.ValueObjects.R1Data;
+import mil.dtic.cbes.submissions.ValueObjects.R1SpreadsheetColumn;
+import mil.dtic.cbes.submissions.dao.P1DataDAO;
+import mil.dtic.cbes.submissions.dao.P1R1ServiceDao;
+import mil.dtic.cbes.submissions.dao.P1SpreadsheetDAO;
+import mil.dtic.cbes.submissions.dao.R1DataDAO;
+import mil.dtic.cbes.submissions.dao.R1SpreadsheetDAO;
+import mil.dtic.cbes.submissions.data.PrcpType;
+import mil.dtic.cbes.submissions.service.P1R1Service;
+import mil.dtic.utility.CbesLogFactory;
+
+/**
+ * Service to update and save P1 and R1 mappings and data.
+ *
+ * @class P1R1ServiceImpl
+ */
+@Component
+public class P1R1ServiceImpl extends BaseServiceImpl implements P1R1Service {
+
+	private static final Log log = CbesLogFactory.getLog(P1R1ServiceImpl.class);
+
+	@Autowired
+	private P1R1ServiceDao p1R1ServiceDao;
+
+	@Autowired
+	private P1SpreadsheetDAO p1SpreadsheetDAO;
+
+	@Autowired
+	private R1SpreadsheetDAO r1SpreadsheetDAO;
+
+	/**
+	 * instantiating for populateData();
+	 */
+	private final static String myDocs = FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
+
+	private String targetPath;
+	private File targetFile;
+	private FileInputStream targetFis;
+	private XSSFWorkbook targetWorkbook;
+	private XSSFSheet targetSpreadsheet;
+
+	private File mapFromFile;
+	private FileInputStream mapFromFis;
+	private XSSFWorkbook mapFromWorkbook;
+	private XSSFSheet mapFromSpreadsheet;
+
+	private Row addToRow;
+	private Row copyFromRow;
+
+	private Cell addToCell;
+	private Cell copyFromCell;
+
+	private int columnIndex;
+
+	private static final List<String> spreadsheetColumnLetters = Collections.unmodifiableList(
+			Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S",
+					"T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK",
+					"AL", "AM", "AN", "AO", "AP", "AQ", "AR", "AS", "AT", "AU", "AV", "AW", "AX", "AY", "AZ"));
+
+	public void spreadsheetMapping(PrcpType prcpType, String columnTitle, int columnOrder, String columnLetter) {
+		if (prcpType == PrcpType.P1) {
+			
+			P1SpreadsheetColumn p1Column = new P1SpreadsheetColumn();
+			
+			p1Column.setColumnTitle(columnTitle);
+			
+			p1Column.setColumnLetter(columnLetter);
+			
+			p1Column.setColumnOrder(columnOrder);
+			
+			p1SpreadsheetDAO.p1Mapping(p1Column);
+		
+		} else if (prcpType == PrcpType.R1) {
+			
+			R1SpreadsheetColumn r1Column = new R1SpreadsheetColumn();
+			
+			r1Column.setColumnTitle(columnTitle);
+			
+			r1Column.setColumnLetter(columnLetter);
+			
+			r1Column.setColumnOrder(columnOrder);
+			
+			r1SpreadsheetDAO.r1Mapping(r1Column);
+		
+		} else {
+			log.warn("process - invalid PrcpType");
+		}
+	}
+
+	public void r1Mapping(R1SpreadsheetColumn r1Column) {
+		r1SpreadsheetDAO.r1Mapping(r1Column);
+	}
+
+	public List<P1SpreadsheetColumn> getP1Columns() {
+		List<P1SpreadsheetColumn> p1Columns = p1SpreadsheetDAO.getAll();
+		return p1Columns;
+	}
+
+	public List<R1SpreadsheetColumn> getR1Columns() {
+		List<R1SpreadsheetColumn> r1Columns = r1SpreadsheetDAO.getAll();
+		return r1Columns;
+	}
+
+	public void updateColumn(PrcpType prcpType, BudgesBaseValueObject column) {
+		
+		if (prcpType == PrcpType.P1) {
+			
+			p1SpreadsheetDAO.p1Update((P1SpreadsheetColumn) column);
+		
+		} else if (prcpType == PrcpType.R1) {
+			
+			r1SpreadsheetDAO.r1Update((R1SpreadsheetColumn) column);
+		
+		} else {
+			
+			log.warn("process - invalid PrcpType");
+		}
+
+	}
+
+	public void deleteColumn(PrcpType prcpType, int id) {
+		
+		if (prcpType == PrcpType.P1) {
+			
+			P1SpreadsheetColumn p1Column = (P1SpreadsheetColumn) findOneP1R1Row(prcpType, id);
+			
+			if (null != p1Column) {
+				
+				p1SpreadsheetDAO.p1Delete(p1Column);
+			
+			} else {
+				
+				log.warn("process - p1Column not found for id: " + id);
+			}
+		} else if (prcpType == PrcpType.R1) {
+			
+			R1SpreadsheetColumn r1Column = (R1SpreadsheetColumn) findOneP1R1Row(prcpType, id);
+			
+			if (null != r1Column) {
+				
+				r1SpreadsheetDAO.r1Delete(r1Column);
+		
+			} else {
+				
+				log.warn("process - r1Column not found for id: " + id);
+			}
+		} else {
+			
+			log.warn("process - invalid PrcpType");
+		}
+
+	}
+
+	public BudgesBaseValueObject findOneP1R1Row(PrcpType prcpType, int id) {
+		
+		if (prcpType == PrcpType.P1) {
+			
+			return p1SpreadsheetDAO.findOne(id);
+		
+		} else if (prcpType == PrcpType.R1) {
+			
+			return r1SpreadsheetDAO.findOne(id);
+		
+		} else {
+			
+			log.warn("process - invalid PrcpType");
+			return null;
+		}
+	}
+
+	/**
+	 * CXE-6552 builds a new workbook using the column titles just added to the
+	 * database
+	 */
+	public void buildSkeleton(PrcpType prcpType, String budgetYear) {
+		
+		XSSFWorkbook workbook = new XSSFWorkbook();
+
+		File directory = new File(myDocs + File.separator + "completedPRCP");
+		
+		directory.mkdir();
+
+		File file = new File(myDocs + File.separator + "completedPRCP" + File.separator + budgetYear + "_"
+				+ prcpType.toString().toUpperCase() + ".xlsx");
+		
+		FileOutputStream out;
+		
+		try {
+			
+			out = new FileOutputStream(file);
+			
+			workbook.write(out);
+			
+			workbook.close();
+			
+			out.close();
+			
+			FileInputStream fis = new FileInputStream(file);
+			
+			workbook = new XSSFWorkbook(fis);
+		
+		} catch (IOException e) {
+
+			log.warn("process - problem creating workbook in buildSkeleton(");
+		}
+
+		XSSFCellStyle headerStyle = workbook.createCellStyle();
+
+		XSSFFont font = workbook.createFont();
+		font.setItalic(true);
+		font.setBold(true);
+		font.setFontName("ARIAL");
+		font.setFontHeightInPoints((short) 10);
+
+		headerStyle.setFont(font);
+		headerStyle.setWrapText(true);
+		headerStyle.setBorderLeft(BorderStyle.THIN);
+		headerStyle.setBorderTop(BorderStyle.THIN);
+		headerStyle.setBorderRight(BorderStyle.THIN);
+
+		XSSFColor blue = new XSSFColor(new java.awt.Color(153, 204, 255));
+		headerStyle.setFillForegroundColor(blue);
+		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+		log.debug("skeleton workbook opened and style set");
+
+		XSSFSheet spreadsheet = workbook.createSheet("Exhibit " + prcpType.toString().toUpperCase());
+
+		XSSFRow row = spreadsheet.createRow(0);
+
+		int cellNumber = 0;
+
+		if (prcpType == PrcpType.P1) {
+			List<P1SpreadsheetColumn> p1Columns = p1SpreadsheetDAO.findAll();
+
+			for (P1SpreadsheetColumn headerRow : p1Columns) {
+				
+				for (int i = 1; i < p1Columns.size() + 1; i++) {
+					
+					if (headerRow.getColumnOrder() == i) {
+						
+						XSSFCell cell = row.createCell(cellNumber++);
+						
+						cell.setCellValue(headerRow.getColumnTitle());
+						
+						cell.setCellStyle(headerStyle);
+					}
+				}
+			}
+		} else if (prcpType == PrcpType.R1) {
+			
+			List<R1SpreadsheetColumn> r1Columns = r1SpreadsheetDAO.findAll();
+			
+			for (R1SpreadsheetColumn headerRow : r1Columns) {
+				
+				for (int i = 1; i < r1Columns.size() + 1; i++) {
+					
+					if (headerRow.getColumnOrder() == i) {
+						
+						XSSFCell cell = row.createCell(cellNumber++);
+						
+						cell.setCellValue(headerRow.getColumnTitle());
+						
+						cell.setCellStyle(headerStyle);
+						
+						if (headerRow.getColumnTitle().equalsIgnoreCase("RDT&E Project Title")) {
+							
+							cell = row.createCell(cellNumber++);
+							
+							cell.setCellValue("Fund Category");
+							
+							cell.setCellStyle(headerStyle);
+						}
+					}
+				}
+			}
+		} else {
+			log.warn("process - invalid PrcpType");
+		}
+
+		try {
+			
+			out = new FileOutputStream(file);
+			
+			workbook.write(out);
+			
+			out.close();
+			
+			workbook.close();
+		
+		} catch (IOException e) {
+
+			log.warn("process - problem closing and saving workbook in buildSkeleton()");
+		}
+
+		log.debug("skeleton workbook created");
+	}
+
+	/**
+	 * CXE-6552 populates data into the new workbook from the workbook we receive
+	 * from PRCP download
+	 */
+	public void populateData(PrcpType prcpType, String copyFromFile, String budgetYear, Integer dataBeginsRow) {
+
+		int p1ColumnIterator;
+		int p1RowIterator;
+		
+		int r1ColumnIterator;
+		int r1RowIterator;
+		
+		// open workbook that you will be writing to and copying from
+		log.debug("opening workbooks in populateData()");
+		openWorkbooks(budgetYear, prcpType, copyFromFile);
+
+		// remove rows that aren't necessary, basically everything except the data to be
+		// copied
+		for (int i = 0; i < dataBeginsRow - 1; i++) {
+			mapFromSpreadsheet.removeRow(mapFromSpreadsheet.getRow(i));
+		}
+
+		// CXE-6553 take the most recent save date of the copy from workbook and save it
+		// to the metadata of the copy to workbook for display on the viewprcp page
+		log.debug("prcp download date saving to metadata");
+		saveDownloadDate();
+
+		if (prcpType == PrcpType.P1) {
+			// Get PRCP file
+			log.debug("populating P1 data into target spreadsheet");
+			
+			List<P1SpreadsheetColumn> p1Columns = p1SpreadsheetDAO.findAllPaged("columnOrder", true, 0, -1);
+
+			Iterator<Row> rowIterator;
+			
+			p1ColumnIterator = -1;
+			
+			for (P1SpreadsheetColumn column : p1Columns) {
+				p1RowIterator = 1;
+				p1ColumnIterator++;
+
+				rowIterator = mapFromSpreadsheet.iterator();
+
+				while (rowIterator.hasNext()) {
+					copyFromRow = rowIterator.next();
+
+					if (null == targetSpreadsheet.getRow(p1RowIterator)) {
+						
+						addToRow = targetSpreadsheet.createRow(p1RowIterator);
+					
+					} else {
+						
+						addToRow = targetSpreadsheet.getRow(p1RowIterator);
+					
+					}
+					
+					addToCell = addToRow.createCell(p1ColumnIterator);
+					
+					columnIndex = getExcelColumnNumber(column.getColumnLetter());
+					
+					copyFromCell = copyFromRow.getCell(columnIndex);
+
+					if (copyFromCell.getCellType() == 1) {
+						
+						addToCell.setCellValue(copyFromCell.getRichStringCellValue());
+
+					} else if (copyFromCell.getCellType() == 0) {
+						
+						addToCell.setCellValue(copyFromCell.getNumericCellValue());
+					}
+
+					p1RowIterator++;
+				}
+			}
+
+		} else if (prcpType == PrcpType.R1) {
+			// Get PRCP file
+			log.debug("populating R1 data into target spreadsheet");
+			
+			List<R1SpreadsheetColumn> r1Columns = r1SpreadsheetDAO.findAllPaged("columnOrder", true, 0, -1);
+			
+			R1SpreadsheetColumn temp = new R1SpreadsheetColumn();
+			
+			temp.setColumnTitle("Fund Category");
+			
+			r1Columns.add(10, temp);
+			
+			int count = 0;
+
+			Iterator<Row> rowIterator = mapFromSpreadsheet.iterator();
+			
+			r1ColumnIterator = -1;
+
+			for (R1SpreadsheetColumn column : r1Columns) {
+				
+				r1RowIterator = 1;
+				
+				r1ColumnIterator++;
+
+				rowIterator = mapFromSpreadsheet.iterator();
+
+				while (rowIterator.hasNext()) {
+					
+					copyFromRow = rowIterator.next();
+
+					if (null == targetSpreadsheet.getRow(r1RowIterator)) {
+						
+						addToRow = targetSpreadsheet.createRow(r1RowIterator);
+						
+						count++;
+					
+					} else {
+						
+						addToRow = targetSpreadsheet.getRow(r1RowIterator);
+					}
+
+					if (column.getColumnTitle().equalsIgnoreCase("Fund Category")) {
+						
+						int y = 0;
+					
+						while (y < count) {
+							
+							addToRow = targetSpreadsheet.getRow(r1RowIterator);
+							addToCell = addToRow.createCell(r1ColumnIterator);
+							addToCell.setCellValue("FY " + budgetYear + " PB");
+							
+							r1RowIterator++;
+							y++;
+						}
+						break;
+					}
+				
+					addToCell = addToRow.createCell(r1ColumnIterator);
+					
+					columnIndex = getExcelColumnNumber(column.getColumnLetter());
+					
+					copyFromCell = copyFromRow.getCell(columnIndex);
+
+					if (copyFromCell.getCellType() == 1) {
+						
+						addToCell.setCellValue(copyFromCell.getRichStringCellValue());
+
+					} else if (copyFromCell.getCellType() == 0) {
+						
+						addToCell.setCellValue(copyFromCell.getNumericCellValue());
+					}
+
+					r1RowIterator++;
+				}
+			}
+
+		} else {
+			log.warn("process - invalid PrcpType");
+		}
+
+		// autosize all columns so all data is visible and does not overflow
+		log.debug("target spreadsheet formatting so all data will be visible and top row is frozen");
+		autosizeColumns();
+
+		// save and close workbooks and delete copied mapping file
+		log.debug("target spreadsheet closing and saving");
+		saveAndClose();
+
+	}
+
+	private void openWorkbooks(String budgetYear, PrcpType prcpType, String copyFromFile) {
+		
+		targetPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator
+				+ "completedPRCP" + File.separator + budgetYear + "_" + prcpType.toString().toUpperCase() + ".xlsx";
+
+		targetFile = new File(targetPath);
+
+		mapFromFile = new File(copyFromFile);
+
+		try {
+			
+			targetFis = new FileInputStream(targetPath);
+			
+			targetWorkbook = new XSSFWorkbook(targetFis);
+			
+			mapFromFis = new FileInputStream(mapFromFile);
+			
+			mapFromWorkbook = new XSSFWorkbook(mapFromFis);
+		
+		} catch (IOException e) {
+			
+			log.warn("process - error in openWorkbooks()");
+		}
+
+		targetSpreadsheet = targetWorkbook.getSheetAt(0);
+
+		mapFromSpreadsheet = mapFromWorkbook.getSheetAt(0);
+	}
+
+	private void saveDownloadDate() {
+		Path path = Paths.get(targetPath);
+
+		POIXMLProperties props = mapFromWorkbook.getProperties();
+
+		CoreProperties coreProp = props.getCoreProperties();
+
+		Date lastSave = coreProp.getModified();
+
+		FileTime downloadedDate = FileTime.fromMillis(lastSave.getTime());
+
+		try {
+			
+			Files.setAttribute(path, "creationTime", downloadedDate, LinkOption.NOFOLLOW_LINKS);
+		
+		} catch (IOException e) {
+			
+			log.warn("process - IOException on saveDownloadDate()");
+		}
+
+		props = targetWorkbook.getProperties();
+
+		coreProp = props.getCoreProperties();
+		coreProp.setCreated(new Nullable<Date>(lastSave));
+
+	}
+
+	private void autosizeColumns() {
+		Row row;
+
+		Cell cell;
+
+		if (targetSpreadsheet.getPhysicalNumberOfRows() > 0) {
+			
+			row = targetSpreadsheet.getRow(targetSpreadsheet.getFirstRowNum());
+
+			Iterator<Cell> cellIterator = row.cellIterator();
+
+			while (cellIterator.hasNext()) {
+				
+				cell = (XSSFCell) cellIterator.next();
+				
+				columnIndex = cell.getColumnIndex();
+				
+				targetSpreadsheet.autoSizeColumn(columnIndex);
+			}
+		}
+
+		targetSpreadsheet.createFreezePane(0, 1);
+
+	}
+
+	private void saveAndClose() {
+		
+		FileOutputStream out;
+		
+		try {
+			
+			out = new FileOutputStream(targetFile);
+			targetWorkbook.write(out);
+			out.close();
+
+			targetWorkbook.close();
+
+			mapFromWorkbook.close();
+
+			targetFis.close();
+
+			mapFromFis.close();
+
+			File directory = new File(myDocs + File.separator + "copyFromPRCP");
+			
+			FileUtils.deleteDirectory(directory);
+		
+		} catch (IOException e) {
+			
+			log.warn("process - errors from saveAndClose(");
+		}
+		
+
+	}
+
+	/**
+	 * CXE-6552 so the user doesn't have to figure out the index number for the
+	 * column letters
+	 */
+	private int getExcelColumnNumber(String column) {
+		
+		for (int i = 0; i < spreadsheetColumnLetters.size(); i++) {
+			
+			if (spreadsheetColumnLetters.get(i).equalsIgnoreCase(column)) {
+				
+				return i;
+			}
+		}
+		return -1;
+	}
+
+}

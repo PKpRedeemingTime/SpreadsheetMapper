@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html t:type="newLayout" t:title="Format PRCP Spreadsheets" t:help="help"
+  xmlns:t="http://tapestry.apache.org/schema/tapestry_5_1_0.xsd"
+  xmlns:p="tapestry:parameter">
+  <div>
+  	<t:alerts/>
+    <t:if test="!selectedPrcp">
+  		<h1>PRCP Selection</h1>
+	  	<t:form t:id="prcpSelect">
+  			<t:label for="prcpType"/>
+	  		<t:select t:id="prcpType"/>
+	  		<br/>
+	  		<t:label for="dataBeginsRow"/>
+	  		<t:textfield t:id="dataBeginsRow" value="dataBeginsRow"/>
+	  		<t:label for="budgetYear"/>
+	  		<t:textfield t:id="budgetYear" value="budgetYear"/>
+	  		<br/>
+	  		<t:submit value="message:prcpSelectionSubmit-label"/>
+	  	</t:form>
+	 </t:if>
+	 
+	 <t:if test="p1">
+    	<t:if test="!skeleton">
+			<h1>P1</h1>
+	  		<t:grid t:source="p1Columns" t:row="p1ColumnRow" 
+	  			t:exclude="id, t5Id, dateCreated, dateModified, version, displayOrder, p1spreadsheetcolumn_id" 
+	  			t:add="update" t:reorder="columnTitle, columnLetter, columnOrder, update, delete" t:rowsPerPage="50">
+	  			<p:updateCell>
+	  				<t:actionlink t:id="p1Update" context="p1ColumnRow.p1spreadsheetcolumn_id">Update</t:actionlink>
+	  			</p:updateCell>
+	  			<p:deleteCell>
+	  				<t:actionlink t:id="p1Delete" context="p1ColumnRow.p1spreadsheetcolumn_id">Delete</t:actionlink>
+	  			</p:deleteCell>
+	  		</t:grid>
+		    <t:if test="!newColumn">
+			    <t:form t:id="addP1Column">
+			    	<t:linksubmit>To Add a New Column, Click Here</t:linksubmit>
+			    </t:form>
+		    </t:if>
+		    <t:if test="newColumn">
+		    	<t:form t:id="p1Column">
+			  		<t:label for="p1ColumnTitle"/>
+			  		<t:textfield t:id="p1ColumnTitle" validate="required"/>
+			  		<t:label for="p1ColumnLetter"/>
+			  		<t:textField t:id="p1ColumnLetter" validate="required"/>
+			  		<t:label for="p1ColumnOrder"/>
+			  		<t:textField t:id="p1ColumnOrder" validate="required"/>
+			  		<t:submit value="message:submit-label"/>
+			  	</t:form>
+		    </t:if>
+		    <t:if test="updateColumn">
+		    	<div style="width:300px;">
+		    		<t:beaneditform t:id="p1UpdateColumn" object="p1Column" 
+		    			t:exclude="id, t5Id, dateCreated, dateModified, version, displayOrder, p1spreadsheetcolumn_id, columnOrder, delete" 
+		    			t:reorder="columnTitle,columnLetter" submitLabel="Save Changes">
+		    			<t:parameter name="columnTitle">
+		    				<t:label for="columnTitle"/>
+		    				<t:textfield t:id="columnTitle" value="p1Column.columnTitle" readonly="true"/>
+		    			</t:parameter>
+		    			<p:p1spreadsheetcolumn_id>
+		    				<t:hidden value="p1Column.p1spreadsheetcolumn_id"/>
+		    			</p:p1spreadsheetcolumn_id>
+		    		</t:beaneditform>
+		    		<br/>
+		    	</div>
+		    </t:if>
+		</t:if>
+    </t:if>
+    
+    <t:if test="r1">
+    	<t:if test="!skeleton">
+    		<h1>R1</h1>
+    		<t:grid t:source="r1Columns" t:row="r1ColumnRow" 
+    			t:exclude="id, t5Id, dateCreated, dateModified, version, displayOrder, r1spreadsheetcolumn_id" 
+    			t:add="update" t:reorder="columnTitle, columnLetter, columnOrder, update, delete" t:rowsPerPage="50">
+	  			<p:updateCell>
+	  				<t:actionlink t:id="r1Update" context="r1ColumnRow.r1spreadsheetcolumn_id">Update</t:actionlink>
+	  			</p:updateCell>
+	  			<p:deleteCell>
+	  				<t:actionlink t:id="r1Delete" context="r1ColumnRow.r1spreadsheetcolumn_id">Delete</t:actionlink>
+	  			</p:deleteCell>
+	  		</t:grid>
+	  		<t:if test="!newColumn">
+			    <t:form t:id="addR1Column">
+			    	<t:linksubmit>To Add a New Column, Click Here</t:linksubmit>
+			    </t:form>
+		    </t:if>
+		    <t:if test="newColumn">
+		    	<t:form t:id="r1Column">
+			  		<t:label for="r1ColumnTitle"/>
+			  		<t:textfield t:id="r1ColumnTitle" validate="required"/>
+			  		<t:label for="r1ColumnLetter"/>
+			  		<t:textField t:id="r1ColumnLetter" validate="required"/>
+			  		<t:label for="r1ColumnOrder"/>
+			  		<t:textField t:id="r1ColumnOrder" validate="required"/>
+			  		<t:submit value="message:submit-label"/>
+			  	</t:form>
+		    </t:if>
+		    <t:if test="updateColumn">
+		    	<div style="width:300px;">
+		    		<t:beaneditform t:id="r1UpdateColumn" object="r1Column" 
+		    			t:exclude="id, t5Id, dateCreated, dateModified, version, displayOrder, r1spreadsheetcolumn_id, columnOrder, delete" 
+		    			t:reorder="columnTitle,columnLetter" submitLabel="Save Changes">
+		    			<t:parameter name="columnTitle">
+		    				<t:label for="columnTitle"/>
+		    				<t:textfield t:id="columnTitleR1" value="r1Column.columnTitle" readonly="true"/>
+		    			</t:parameter>
+		    			<p:r1spreadsheetcolumn_id>
+		    				<t:hidden value="r1Column.r1spreadsheetcolumn_id"/>
+		    			</p:r1spreadsheetcolumn_id>
+		    		</t:beaneditform>
+		    		<br/>
+		    	</div>
+		    </t:if>
+	    </t:if>
+    </t:if>
+    <t:if test="p1OrR1">
+	    <t:if test="!skeleton">
+		    <t:form t:id="createSkeleton">
+		    	<t:linksubmit>If Everything Above Is Correct, Click Here</t:linksubmit>
+		    </t:form>
+		</t:if>
+	</t:if>
+    <br/>
+    <t:if test="skeleton">
+    	<h1>${prcpType} Data File</h1>
+    	<strong>Please select the file from which you would like to copy data.</strong>
+    	<br/>
+    	<t:form t:id="fileChooser">
+    		<input t:type="upload" t:id="copyFile" t:value ="copyFile"/>
+    		<br/>
+    		<t:submit value="message:fileChooserSubmit-label"/>
+    	</t:form>
+    	<br/>
+    </t:if>
+    <t:form t:id="restart">
+    	<t:linksubmit>To Start Over, Click Here</t:linksubmit>
+    </t:form>
+    
+  </div>
+</html>

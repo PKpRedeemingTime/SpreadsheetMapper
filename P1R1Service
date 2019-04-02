@@ -1,11 +1,11 @@
-package mil.dtic.cbes.submissions.service;
+package submissions.service;
 
 import java.util.List;
 
-import mil.dtic.cbes.submissions.ValueObjects.BudgesBaseValueObject;
-import mil.dtic.cbes.submissions.ValueObjects.P1SpreadsheetColumn;
-import mil.dtic.cbes.submissions.ValueObjects.R1SpreadsheetColumn;
-import mil.dtic.cbes.submissions.data.PrcpType;
+import submissions.ValueObjects.BudgesBaseValueObject;
+import submissions.ValueObjects.P1SpreadsheetColumn;
+import submissions.ValueObjects.R1SpreadsheetColumn;
+import submissions.data.PrcpType;
 
 public interface P1R1Service extends BaseService{
    
